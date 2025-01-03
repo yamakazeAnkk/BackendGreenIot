@@ -17,7 +17,7 @@ namespace GreenIotApi.Models
         public float SoilMoisture { get; set; }
         public float LightLevel { get; set; }
         public float CoPpm { get; set; }
-        public bool IsRaining { get; set; }
+        public float IsRaining { get; set; }
         public DateTime Timestamp { get; set; }
     }
 }
