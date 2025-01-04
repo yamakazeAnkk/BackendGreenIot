@@ -18,6 +18,6 @@ namespace GreenIotApi.Models
         public float LightLevel { get; set; }
         public float CoPpm { get; set; }
         public float IsRaining { get; set; }
-        public DateTime Timestamp { get; set; }
+        public DateTime Timestamp { get; set; }  = DateTime.Now;
     }
 }
