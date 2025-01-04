@@ -13,10 +13,12 @@ namespace GreenIotApi.Controllers
     public class SensorController : ControllerBase
     {
         private readonly SensorDataRepository _sensorDataRepository;
+        private readonly ILogger<SensorController> _logger;
 
-        public SensorController(SensorDataRepository sensorDataRepository)
+        public SensorController(SensorDataRepository sensorDataRepository, ILogger<SensorController> logger)
         {
             _sensorDataRepository = sensorDataRepository;
+            _logger = logger;
         }   
 
         [HttpPost("add")]
@@ -24,11 +26,13 @@ namespace GreenIotApi.Controllers
         {
            try
             {
+                _logger.LogInformation("Received SensorData: {@Data}", data);
                 await _sensorDataRepository.AddSensorDataAsync(data);
                 return Ok(new { message = "Sensor data inserted successfully" });
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error inserting SensorData");
                 return StatusCode(500, new { error = ex.Message });
             }
             
