@@ -2,22 +2,28 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using MongoDB.Bson;
-using MongoDB.Bson.Serialization.Attributes;
+using Google.Cloud.Firestore;
 
 namespace GreenIotApi.Models
 {
+    [FirestoreData]
     public class SensorData
     {
-        [BsonId]
-        [BsonRepresentation(BsonType.ObjectId)]
-        public ObjectId Id { get; set; }
+        [FirestoreDocumentId]
+        public string? Id { get; set; }
+        [FirestoreProperty]
         public float Temperature { get; set; }
+        [FirestoreProperty]
         public float Humidity { get; set; }
+        [FirestoreProperty]
         public float SoilMoisture { get; set; }
+        [FirestoreProperty]
         public float LightLevel { get; set; }
+        [FirestoreProperty]
         public float CoPpm { get; set; }
+        [FirestoreProperty]
         public float IsRaining { get; set; }
-        public DateTime Timestamp { get; set; }  = DateTime.Now;
+        [FirestoreProperty]
+        public DateTime? Timestamp { get; set; }  = DateTime.UtcNow;
     }
 }
