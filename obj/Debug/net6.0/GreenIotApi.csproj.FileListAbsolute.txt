@@ -60,3 +60,17 @@
 /Users/nguyenan/Desktop/DM/GreenIotApi/bin/Debug/net6.0/bookstore-59884-firebase-adminsdk-p59pi-005bba2668.json
 /Users/nguyenan/Desktop/DM/GreenIotApi/bin/Debug/net6.0/AutoMapper.dll
 /Users/nguyenan/Desktop/DM/GreenIotApi/bin/Debug/net6.0/AutoMapper.Extensions.Microsoft.DependencyInjection.dll
+/Users/nguyenan/Desktop/DM/GreenIotApi/bin/Debug/net6.0/out/web.config
+/Users/nguyenan/Desktop/DM/GreenIotApi/bin/Debug/net6.0/out/appsettings.Development.json
+/Users/nguyenan/Desktop/DM/GreenIotApi/bin/Debug/net6.0/out/appsettings.json
+/Users/nguyenan/Desktop/DM/GreenIotApi/bin/Debug/net6.0/out/bookstore-59884-firebase-adminsdk-p59pi-005bba2668.json
+/Users/nguyenan/Desktop/DM/GreenIotApi/bin/Debug/net6.0/out/GreenIotApi.deps.json
+/Users/nguyenan/Desktop/DM/GreenIotApi/bin/Debug/net6.0/out/GreenIotApi.runtimeconfig.json
+/Users/nguyenan/Desktop/DM/GreenIotApi/bin/Debug/net6.0/BouncyCastle.Cryptography.dll
+/Users/nguyenan/Desktop/DM/GreenIotApi/bin/Debug/net6.0/MailKit.dll
+/Users/nguyenan/Desktop/DM/GreenIotApi/bin/Debug/net6.0/MimeKit.dll
+/Users/nguyenan/Desktop/DM/GreenIotApi/bin/Debug/net6.0/System.Formats.Asn1.dll
+/Users/nguyenan/Desktop/DM/GreenIotApi/bin/Debug/net6.0/System.Security.Cryptography.Pkcs.dll
+/Users/nguyenan/Desktop/DM/GreenIotApi/bin/Debug/net6.0/System.Text.Encoding.CodePages.dll
+/Users/nguyenan/Desktop/DM/GreenIotApi/bin/Debug/net6.0/runtimes/win/lib/net6.0/System.Security.Cryptography.Pkcs.dll
+/Users/nguyenan/Desktop/DM/GreenIotApi/bin/Debug/net6.0/runtimes/win/lib/net6.0/System.Text.Encoding.CodePages.dll

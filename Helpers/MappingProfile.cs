@@ -13,6 +13,8 @@ namespace GreenIotApi.Helpers
         public MappingProfile()
         {
             CreateMap<SensorData, SensorDataDto>().ReverseMap();
+            CreateMap<Device, DeviceDto>().ReverseMap();
+            CreateMap<Garden, GardenDto>().ReverseMap();
         }
     }
 }

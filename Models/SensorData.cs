@@ -9,8 +9,6 @@ namespace GreenIotApi.Models
     [FirestoreData]
     public class SensorData
     {
-        [FirestoreDocumentId]
-        public string? Id { get; set; }
         [FirestoreProperty]
         public float Temperature { get; set; }
         [FirestoreProperty]
@@ -24,6 +22,7 @@ namespace GreenIotApi.Models
         [FirestoreProperty]
         public float IsRaining { get; set; }
         [FirestoreProperty]
-        public DateTime? Timestamp { get; set; }  = DateTime.UtcNow;
+        public DateTime? Timestamp { get; set; } = DateTime.UtcNow;
+
     }
 }

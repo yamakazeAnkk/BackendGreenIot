@@ -11,21 +11,20 @@ using FirebaseAdmin.Auth;
 using Google.Apis.Auth.OAuth2;
 using AutoMapper;
 using GreenIotApi.Helpers;
+var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
 var builder = WebApplication.CreateBuilder(args);
-// Add services to the container.
+builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
 
-// Load MongoDB settings
+// Add services to the container.
 builder.Services.Configure<MongoDBSettings>(
     builder.Configuration.GetSection("MongoDB"));
 
-// Register MongoClient
 builder.Services.AddSingleton<IMongoClient>(s =>
 {
     var settings = s.GetRequiredService<IOptions<MongoDBSettings>>().Value;
     return new MongoClient(settings.ConnectionString);
 });
 
-// Register IMongoDatabase
 builder.Services.AddSingleton<IMongoDatabase>(s =>
 {
     var client = s.GetRequiredService<IMongoClient>();
@@ -35,18 +34,16 @@ builder.Services.AddSingleton<IMongoDatabase>(s =>
 
 builder.Services.AddScoped<SensorDataRepository>();
 builder.Services.AddScoped<FirestoreService>();
+builder.Services.AddScoped<EmailService>();
 
-// Register FirebaseApp
 FirebaseApp.Create(new AppOptions
 {
     Credential = GoogleCredential.FromFile("bookstore-59884-firebase-adminsdk-p59pi-005bba2668.json"),
-    
-}); 
+});
 
 builder.Services.AddAutoMapper(typeof(MappingProfile));
 
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddCors(options =>
@@ -57,20 +54,23 @@ builder.Services.AddCors(options =>
     });
 });
 
+
 var app = builder.Build();
 app.UseCors("AllowAll");
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+
+
+if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "GreenIotApi v1");
+        c.RoutePrefix = string.Empty;
+    });
 }
 
 app.UseHttpsRedirection();
-
 app.UseAuthorization();
-
 app.MapControllers();
-
 app.Run();

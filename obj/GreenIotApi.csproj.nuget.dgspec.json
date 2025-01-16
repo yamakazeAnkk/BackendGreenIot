@@ -54,6 +54,10 @@
               "target": "Package",
               "version": "[4.10.0, )"
             },
+            "MailKit": {
+              "target": "Package",
+              "version": "[4.9.0, )"
+            },
             "MongoDB.Driver": {
               "target": "Package",
               "version": "[3.1.0, )"

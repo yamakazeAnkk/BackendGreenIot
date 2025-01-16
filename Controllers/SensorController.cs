@@ -1,45 +1,41 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using GreenIotApi.Models;
-using GreenIotApi.Repositories;
 using Microsoft.AspNetCore.Mvc;
+using AutoMapper;
 using GreenIotApi.Services;
 using GreenIotApi.DTOs;
-using AutoMapper;
+using GreenIotApi.Models;
+
 namespace GreenIotApi.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
-    public class SensorController : ControllerBase
+    [Route("api/sensor-data")]
+    public class SensorDataController : ControllerBase
     {
-        private readonly SensorDataRepository _sensorDataRepository;
-        private readonly ILogger<SensorController> _logger;
         private readonly FirestoreService _firestoreService;
         private readonly IMapper _mapper;
 
-        public SensorController(FirestoreService firestoreService,SensorDataRepository sensorDataRepository, ILogger<SensorController> logger, IMapper mapper)
+        public SensorDataController(FirestoreService firestoreService, IMapper mapper)
         {
             _firestoreService = firestoreService;
-            _sensorDataRepository = sensorDataRepository;
-            _logger = logger;
             _mapper = mapper;
-        }   
+        }
 
-        [HttpPost("add")]
-        public async Task<IActionResult> AddSensorData([FromBody] SensorDataDto sensorData)
+        // POST: Add sensor data to a garden
+        [HttpPost]
+        public async Task<IActionResult> AddSensorData(string gardenId, [FromBody] SensorDataDto sensorDataDto)
         {
-            try
-            {
-                var mappedSensorData = _mapper.Map<SensorData>(sensorData);
-                await _firestoreService.AddSensorDataAsync(mappedSensorData);
-                return Ok(new { message = "Data added successfully" });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { error = ex.Message });
-            }
+            var sensorData = _mapper.Map<SensorData>(sensorDataDto);
+            var sensorDataId = await _firestoreService.AddSensorDataAsync(gardenId, sensorData);
+            return Ok(new { SensorDataId = sensorDataId, Message = "Sensor data added successfully." });
+        }
+
+        // Get All SensorData from a Garden
+        [HttpGet]
+        public async Task<IActionResult> GetSensorData(string gardenId)
+        {
+            var data = await _firestoreService.GetSensorDataAsync(gardenId);
+            if (!data.Any())
+                return NotFound("No sensor data found.");
+            return Ok(data);
         }
 
     }

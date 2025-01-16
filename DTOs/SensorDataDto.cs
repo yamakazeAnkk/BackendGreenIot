@@ -19,6 +19,7 @@ namespace GreenIotApi.DTOs
         public float CoPpm { get; set; }
 
         public float IsRaining { get; set; }
+        public DateTime? Timestamp { get; set; } = DateTime.UtcNow;
 
        
     }
