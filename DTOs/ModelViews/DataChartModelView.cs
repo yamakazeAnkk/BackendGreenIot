@@ -1,13 +1,13 @@
-
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace GreenIotApi.DTOs
+namespace GreenIotApi.DTOs.ModelViews
 {
-    public class SensorDataDto
+    public class DataChartModelView
     {
+        public string Id { get; set; }
         public float Temperature { get; set; }
      
         public float Humidity { get; set; }
@@ -18,11 +18,7 @@ namespace GreenIotApi.DTOs
 
         public float CoPpm { get; set; }
 
-        public float IsRaining { get; set; }
 
-        public DateTime Timestamp { get; set; }
-    
-
-       
+        
     }
 }

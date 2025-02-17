@@ -11,6 +11,12 @@ using FirebaseAdmin.Auth;
 using Google.Apis.Auth.OAuth2;
 using AutoMapper;
 using GreenIotApi.Helpers;
+using Google.Cloud.Firestore;
+using GreenIotApi.Repositories.IRepositories;
+using GreenIotApi.Services.InterfaceService;
+
+
+
 var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
 var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
@@ -19,27 +25,43 @@ builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
 builder.Services.Configure<MongoDBSettings>(
     builder.Configuration.GetSection("MongoDB"));
 
-builder.Services.AddSingleton<IMongoClient>(s =>
+builder.Services.AddSingleton(provider =>
 {
-    var settings = s.GetRequiredService<IOptions<MongoDBSettings>>().Value;
-    return new MongoClient(settings.ConnectionString);
-});
+    // Set the Google Application Credentials environment variable
+    string path = "bookstore-59884-firebase-adminsdk-p59pi-005bba2668.json";
+    Environment.SetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS", path);
 
-builder.Services.AddSingleton<IMongoDatabase>(s =>
-{
-    var client = s.GetRequiredService<IMongoClient>();
-    var settings = s.GetRequiredService<IOptions<MongoDBSettings>>().Value;
-    return client.GetDatabase(settings.DatabaseName);
+    // Create FirestoreDb instance
+    return FirestoreDb.Create("bookstore-59884");
 });
 
 builder.Services.AddScoped<SensorDataRepository>();
-builder.Services.AddScoped<FirestoreService>();
 builder.Services.AddScoped<EmailService>();
+builder.Services.AddScoped<FirebaseAuthService>();
+builder.Services.AddScoped<GardenService>();
+builder.Services.AddScoped<DeviceService>();
+builder.Services.AddScoped<SensorDataService>();
+builder.Services.AddScoped<FirebaseAuthService>();
+builder.Services.AddTransient<GardenRepository>();
+builder.Services.AddTransient<DeviceRepository>();
+builder.Services.AddTransient<SensorDataRepository>();
+builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+builder.Services.AddScoped(typeof(IGardenRepository), typeof(GardenRepository));
+builder.Services.AddScoped(typeof(ISensorDataRepository), typeof(SensorDataRepository));
+builder.Services.AddScoped<IFirebaseStorageService, FirebaseStorageService>();
+builder.Services.AddScoped<FirebaseStorageService>();
+
+
+
+
+
+
 
 FirebaseApp.Create(new AppOptions
 {
     Credential = GoogleCredential.FromFile("bookstore-59884-firebase-adminsdk-p59pi-005bba2668.json"),
 });
+
 
 builder.Services.AddAutoMapper(typeof(MappingProfile));
 

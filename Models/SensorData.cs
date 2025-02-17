@@ -9,6 +9,8 @@ namespace GreenIotApi.Models
     [FirestoreData]
     public class SensorData
     {
+        [FirestoreDocumentId]
+        public string Id { get; set; } = Guid.NewGuid().ToString();
         [FirestoreProperty]
         public float Temperature { get; set; }
         [FirestoreProperty]

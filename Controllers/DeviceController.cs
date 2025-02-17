@@ -10,15 +10,29 @@ namespace GreenIotApi.Controllers
     [Route("api/devices")]
     public class DeviceController : ControllerBase
     {
-        private readonly FirestoreService _firestoreService;
+        private readonly DeviceService _deviceService;
         private readonly IMapper _mapper;
+        private readonly FirebaseStorageService _firebaseStorageService;
 
-        public DeviceController(FirestoreService firestoreService, IMapper mapper)
+        public DeviceController(DeviceService deviceService, IMapper mapper, FirebaseStorageService firebaseStorageService)
         {
-            _firestoreService = firestoreService;
+            _deviceService = deviceService;
             _mapper = mapper;
+            _firebaseStorageService = firebaseStorageService;
         }
-
+        [HttpGet("getData/{nodeId}")]
+        public async Task<IActionResult> GetData(string nodeId)
+        {
+            try
+            {
+                var data = await _firebaseStorageService.GetDataFromRealtimeDatabaseAsync(nodeId);
+                return Ok(data); // Return the fetched data
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Error: {ex.Message}");
+            }
+        }
         [HttpPost]
         public async Task<IActionResult> AddDevice(string gardenId, [FromBody] DeviceDto deviceDto)
         {
@@ -26,17 +40,17 @@ namespace GreenIotApi.Controllers
             {
                 return BadRequest("Device name is required.");
             }
-            var existingDevices = await _firestoreService.GetDevicesAsync(gardenId);
+            var existingDevices = await _deviceService.GetDevicesAsync(gardenId);
             if (existingDevices.Any(d => d.Name.Equals(deviceDto.Name, StringComparison.OrdinalIgnoreCase)))
             {
                 return Conflict(new { Message = "A device with the same name already exists in this garden." });
             }
-            if(!await _firestoreService.CheckGardenExistsAsync(gardenId))
+            if(!await _deviceService.CheckGardenExistsAsync(gardenId))
             {
                 return NotFound("GardenId does not exist.");
             }
             var device = _mapper.Map<Device>(deviceDto);
-            var deviceId = await _firestoreService.AddDeviceAsync(gardenId, device);
+            var deviceId = await _deviceService.AddDeviceAsync(gardenId, device);
             return Ok(new { DeviceId = deviceId, Message = "Device added successfully." });
         }
 
@@ -44,10 +58,24 @@ namespace GreenIotApi.Controllers
         [HttpGet]
         public async Task<IActionResult> GetDevices(string gardenId)
         {
-            var devices = await _firestoreService.GetDevicesAsync(gardenId);
+            var devices = await _deviceService.GetDevicesAsync(gardenId);
             if (!devices.Any())
                 return NotFound("No devices found.");
             return Ok(devices);
         }
+        [HttpPatch("updateData/{nodeId}")]
+        public async Task<IActionResult> UpdateData(string nodeId, [FromBody] FirebaseData data)
+        {
+            try
+            {
+                await _firebaseStorageService.UpdateDataToRealtimeDatabaseAsync(nodeId, data);
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Error: {ex.Message}");
+            }
+        }
+        
     }
 }
