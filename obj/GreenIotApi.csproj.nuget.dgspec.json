@@ -58,6 +58,10 @@
               "target": "Package",
               "version": "[4.9.0, )"
             },
+            "Microsoft.ML.OnnxRuntime": {
+              "target": "Package",
+              "version": "[1.20.1, )"
+            },
             "MongoDB.Driver": {
               "target": "Package",
               "version": "[3.1.0, )"

@@ -20,7 +20,7 @@ namespace GreenIotApi.DTOs
 
         public float IsRaining { get; set; }
 
-        public DateTime Timestamp { get; set; }
+        
     
 
        

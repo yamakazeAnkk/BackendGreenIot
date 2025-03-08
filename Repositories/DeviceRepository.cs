@@ -20,9 +20,23 @@ namespace GreenIotApi.Repositories.IRepositories
         public async Task<string> AddDeviceAsync(string gardenId, Device device)
         {
             var deviceCollection = _firestoreDb.Collection("gardens").Document(gardenId).Collection("devices");
+
+            // Kiểm tra xem thiết bị đã có trong cơ sở dữ liệu chưa
+            var existingDevice = await deviceCollection
+                .WhereEqualTo("Name", device.Name)
+                .GetSnapshotAsync();
+
+            if (existingDevice.Documents.Any())
+            {
+                throw new InvalidOperationException($"Device with the name '{device.Name}' already exists.");
+            }
+
+            // Thêm thiết bị vào Firestore nếu chưa có
             var documentRef = await deviceCollection.AddAsync(device);
             return documentRef.Id;
         }
+
+
 
         public async Task<List<Device>> GetDevicesAsync(string gardenId)
         {

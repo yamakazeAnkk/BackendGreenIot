@@ -14,6 +14,7 @@ using GreenIotApi.Helpers;
 using Google.Cloud.Firestore;
 using GreenIotApi.Repositories.IRepositories;
 using GreenIotApi.Services.InterfaceService;
+using Microsoft.ML.OnnxRuntime;
 
 
 
@@ -34,6 +35,33 @@ builder.Services.AddSingleton(provider =>
     // Create FirestoreDb instance
     return FirestoreDb.Create("bookstore-59884");
 });
+builder.Services.AddHttpClient();
+
+// Thêm DailyCheckService vào DI container
+builder.Services.AddHostedService<DailyCheckService>();
+
+builder.Services.AddSingleton<InferenceSession>(sp =>
+{
+    try
+    {
+        // Xây dựng đường dẫn đến mô hình ONNX, đảm bảo đường dẫn này là đúng
+        var modelPath = Path.Combine(Directory.GetCurrentDirectory(), "Python", "random_forest_watering.onnx");
+        if (!File.Exists(modelPath))
+        {
+            throw new FileNotFoundException($"Model file not found at path: {modelPath}");
+        }
+
+        Console.WriteLine($"Loading model from: {modelPath}");
+        var session = new InferenceSession(modelPath);
+        Console.WriteLine("InferenceSession loaded successfully.");
+        return session;
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Error loading InferenceSession: {ex.Message}");
+        throw;
+    }
+});
 
 builder.Services.AddScoped<SensorDataRepository>();
 builder.Services.AddScoped<EmailService>();
@@ -50,6 +78,9 @@ builder.Services.AddScoped(typeof(IGardenRepository), typeof(GardenRepository));
 builder.Services.AddScoped(typeof(ISensorDataRepository), typeof(SensorDataRepository));
 builder.Services.AddScoped<IFirebaseStorageService, FirebaseStorageService>();
 builder.Services.AddScoped<FirebaseStorageService>();
+builder.Services.AddScoped<AlertRepository>();
+builder.Services.AddScoped<UserService>();
+builder.Services.AddScoped<UserRepository>();
 
 
 

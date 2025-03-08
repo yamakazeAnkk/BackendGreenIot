@@ -105,22 +105,36 @@ namespace GreenIotApi.Controllers
             }
         }
         [HttpGet("weeklyAverage/{nodeId}")]
-        public async Task<IActionResult> GetWeeklyDataByColumn(string nodeId, 
-                                                            [FromQuery] int year, 
-                                                            [FromQuery] int month,
-                                                            [FromQuery] int week,
+        public async Task<IActionResult> GetWeeklyDataByColumn(string nodeId = "6jk2PWTaobJgQCGPlVso", 
+                                                            [FromQuery] int year = 2025, 
+                                                            [FromQuery] int month = 2,
+                                                            [FromQuery] int day = 1,
                                                             [FromQuery] string columnName = "SoilMoisture") // Default is SoilMoisture
         {
             try
             {
                 // Lấy dữ liệu trung bình của từng ngày trong tuần cho cột chỉ định
-                var weeklyData = await _sensorDataService.GetWeeklyDataByColumnAsync(nodeId, year, month, week, columnName);
+                var weeklyData = await _sensorDataService.GetWeeklyDataByColumnAsync(nodeId, year, month, day, columnName);
 
                 return Ok(new { data = weeklyData }); // Trả về mảng trung bình cho 7 ngày
             }
             catch (Exception ex)
             {
                 return BadRequest($"Error: {ex.Message}");
+            }
+        }
+        [HttpPost("check-sensors")]
+        public async Task<IActionResult> CheckSensorsForUser([FromBody] CheckSensorRequest request)
+        {
+            try
+            {
+                // Gọi service để kiểm tra tất cả các cảm biến của người dùng
+                await _sensorDataService.CheckSensorsForUserAsync(request.UserId, request.Date);
+                return Ok(new { Message = "Sensor check completed successfully." });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { Message = $"Error: {ex.Message}" });
             }
         }
     }

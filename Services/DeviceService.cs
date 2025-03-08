@@ -27,11 +27,14 @@ namespace GreenIotApi.Services
 
         public async Task<string> AddDeviceAsync(string gardenId, Device device)
         {
+            // Kiểm tra xem vườn có tồn tại không
             if (!await _gardenService.CheckGardenExistsAsync(gardenId))
                 throw new ArgumentException("Garden does not exist.");
             
+            // Lưu thiết bị vào Firestore
             return await _deviceRepository.AddDeviceAsync(gardenId, device);
         }
+
 
         public async Task<List<DeviceDto>> GetDevicesAsync(string gardenId)
         {

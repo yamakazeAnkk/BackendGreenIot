@@ -16,11 +16,13 @@ namespace GreenIotApi.Services
     {
         private readonly ISensorDataRepository _sensorDataRepository;
         private readonly GardenService _gardenService;
+        private readonly AlertRepository _alertRepository;  
         private readonly IMapper _mapper;
 
-        public SensorDataService(ISensorDataRepository sensorDataRepository, GardenService gardenService, IMapper mapper)
+        public SensorDataService(ISensorDataRepository sensorDataRepository, AlertRepository alertRepository, GardenService gardenService, IMapper mapper)
         {
             _sensorDataRepository = sensorDataRepository;
+            _alertRepository = alertRepository;
             _gardenService = gardenService;
             _mapper = mapper;
         }
@@ -85,14 +87,15 @@ namespace GreenIotApi.Services
                 { "Temperature", FillMissingData(groupedData.Select(group => group.Average(d => d.Temperature)).ToList()) },
                 { "Humidity", FillMissingData(groupedData.Select(group => group.Average(d => d.Humidity)).ToList()) },
                 { "LightLevel", FillMissingData(groupedData.Select(group => group.Average(d => d.LightLevel)).ToList()) },
-                { "CoPpm", FillMissingData(groupedData.Select(group => group.Average(d => d.CoPpm)).ToList()) }
+                { "CoPpm", FillMissingData(groupedData.Select(group => group.Average(d => d.CoPpm)).ToList()) },
+                { "IsRaining", FillMissingData(groupedData.Select(group => group.Average(d => d.IsRaining)).ToList()) }
             };
 
             return new Dictionary<string, List<float>> { { columnName, timeSeriesData[columnName] } };
         }
         private bool IsValidColumnName(string columnName)
         {
-            var validColumnNames = new List<string> { "SoilMoisture", "Temperature", "Humidity", "LightLevel", "CoPpm" };
+            var validColumnNames = new List<string> { "SoilMoisture", "Temperature", "Humidity", "LightLevel", "CoPpm", "IsRaining" };
             return validColumnNames.Contains(columnName);
         }
 
@@ -168,6 +171,9 @@ namespace GreenIotApi.Services
                             case "coppm":
                                 weekAverage = weeksData[i].Average(d => d.CoPpm);
                                 break;
+                            case "israining":
+                                weekAverage = weeksData[i].Average(d => d.IsRaining);
+                                break;
                             default:
                                 throw new ArgumentException($"Column '{columnName}' is not valid.");
                         }
@@ -217,24 +223,26 @@ namespace GreenIotApi.Services
 
             return weeks;
         }
-        public async Task<List<float>> GetWeeklyDataByColumnAsync(string nodeId, int year, int month, int week, string columnName)
+        public async Task<List<float>> GetWeeklyDataByColumnAsync(string nodeId, int year, int month, int day, string columnName)
         {
             // Lấy tất cả dữ liệu cho tuần đã cho
-            var sensorData = await _sensorDataRepository.GetSensorDataByWeekAsync(nodeId, year, month, week);
+            var sensorData = await _sensorDataRepository.GetSensorDataByWeekAsync(nodeId, year, month, day);
 
             // Mảng để lưu trữ giá trị trung bình của từng ngày trong tuần
             var weeklyAverages = new List<float> { 0, 0, 0, 0, 0, 0, 0 }; // Khởi tạo 7 giá trị cho 7 ngày, mặc định là 0
 
             // Nhóm dữ liệu theo ngày trong tuần
-            var groupedDataByDay = GroupDataByDay(sensorData, year, month, week);
+            var groupedDataByDay = GroupDataByDay(sensorData, year, month, day);
 
             // Tính trung bình cho mỗi ngày trong tuần
             for (int i = 0; i < groupedDataByDay.Count; i++)
             {
-                if (groupedDataByDay[i].Any())
+                if (groupedDataByDay[i].Any()) // Kiểm tra nếu có dữ liệu cho ngày đó
                 {
                     float dayAverage = 0;
-                    switch (columnName.ToLower())
+
+                    // Tính toán trung bình tùy theo cột
+                    switch (columnName.ToLower()) // Đảm bảo so sánh không phân biệt chữ hoa/thường
                     {
                         case "soilmoisture":
                             dayAverage = groupedDataByDay[i].Average(d => d.SoilMoisture);
@@ -251,11 +259,14 @@ namespace GreenIotApi.Services
                         case "coppm":
                             dayAverage = groupedDataByDay[i].Average(d => d.CoPpm);
                             break;
+                        case "israining":
+                            dayAverage = groupedDataByDay[i].Average(d => d.IsRaining);
+                            break;
                         default:
                             throw new ArgumentException($"Column '{columnName}' is not valid.");
                     }
 
-                    weeklyAverages[i] = dayAverage;
+                    weeklyAverages[i] = dayAverage; // Gán giá trị trung bình cho ngày đó
                 }
                 else
                 {
@@ -266,6 +277,7 @@ namespace GreenIotApi.Services
 
             return weeklyAverages; // Trả về mảng trung bình cho 7 ngày
         }
+
 
     // Nhóm dữ liệu theo ngày trong tuần
         private List<List<SensorData>> GroupDataByDay(List<SensorData> data, int year, int month, int week)
@@ -293,8 +305,57 @@ namespace GreenIotApi.Services
             int daysToAdd = (weekNumber - 1) * 7 - (int)firstDayOfMonth.DayOfWeek;
             return firstDayOfMonth.AddDays(daysToAdd);
         }
+        public async Task CheckSensorsForUserAsync(string userId, DateTime date)
+        {
+            // Lấy tất cả các khu vườn của người dùng
+            var gardens = await _gardenService.GetGardensByUserIdAsync(userId);
 
+            foreach (var garden in gardens)
+            {
+                // Kiểm tra dữ liệu cảm biến trong khu vườn đó
+                var sensorData = await _sensorDataRepository.GetSensorDataByDateAsync(garden.GardenId,date);
 
+                // Kiểm tra xem dữ liệu có thay đổi hay không (đo các cảm biến trừ isRaining)
+                bool isSensorActive = CheckSensorDataForChanges(sensorData);
+
+                if (!isSensorActive)
+                {
+                    // Tạo cảnh báo nếu cảm biến không hoạt động
+                    await _alertRepository.CreateAlertAsync(userId, garden.GardenId, "Cảm biến không hoạt động", date);
+                }
+            }
+        }
+        private bool CheckSensorDataForChanges(List<SensorData> sensorData)
+        {
+            // Giả sử, nếu tất cả các giá trị cảm biến đều không thay đổi (cùng một giá trị) trong ngày, thì coi là không hoạt động
+            bool hasChanges = false;
+            var values = new List<float>
+            {
+                sensorData.FirstOrDefault()?.Temperature ?? 0,
+                sensorData.FirstOrDefault()?.SoilMoisture ?? 0,
+                sensorData.FirstOrDefault()?.Humidity ?? 0,
+                sensorData.FirstOrDefault()?.LightLevel ?? 0,
+                sensorData.FirstOrDefault()?.CoPpm ?? 0,
+                sensorData.FirstOrDefault()?.IsRaining ?? 0
+            };
+
+            // Kiểm tra sự thay đổi trong dữ liệu
+            for (int i = 1; i < sensorData.Count; i++)
+            {
+                if (values.Any(v => v != sensorData[i].Temperature || v != sensorData[i].SoilMoisture || v != sensorData[i].Humidity || v != sensorData[i].LightLevel || v != sensorData[i].CoPpm || v != sensorData[i].IsRaining))
+                {
+                    hasChanges = true;
+                    break;
+                }
+            }
+
+            return hasChanges;
+        }
+        public async Task<List<Alert>> GetAlertsByUserIdAsync(string userId)
+        {
+            var alerts = await _alertRepository.GetAlertsByUserIdAsync(userId);
+            return alerts;
+        }
         
 
     }

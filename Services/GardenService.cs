@@ -87,6 +87,11 @@ namespace GreenIotApi.Services
             // Mapping từ SensorData sang SensorDataDto
             return _mapper.Map<SensorDataDto>(latestData);
         }
+
+        public async Task<List<Garden>> FilterGardensByUserIdAndGardenIdAsync(string userId, string name)
+        {
+            return await _gardenRepository.FilterGardensByUserIdAndGardenIdAsync(userId, name);
+        }
         
     }
 }

@@ -12,8 +12,13 @@ namespace GreenIotApi.Repositories.IRepositories
         Task<SensorData> GetLatestSensorDataAsync(string gardenId);
         Task<List<SensorData>> GetSensorDataAsync(string nodeId, int year, int month, int? day);
         Task<List<SensorData>> GetSensorDataByMonthAsync(string nodeId, int year, int month);
-        Task<List<SensorData>> GetSensorDataByWeekAsync(string nodeId, int year, int month, int week);
+        Task<List<SensorData>> GetSensorDataByWeekAsync(string nodeId, int year, int month, int day);
         Task<List<SensorData>> GetSensorDataByTimeRangeAsync(string gardenId, DateTime start, DateTime end);
+        Task CheckAndAlertForSensorActivityAsync(Garden garden, DateTime date);
+        Task<List<SensorData>> GetSensorDataByDateAsync(string gardenId, DateTime date);
+
+        Task CheckSensorsForUserAsync(DateTime date);
+
         
 
     

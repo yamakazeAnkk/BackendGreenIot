@@ -10,5 +10,7 @@ namespace GreenIotApi.Repositories.IRepositories
         Task<SensorData> GetDataSensorGardenAsync(string gardenId);
         Task<List<Garden>> GetGardensByUserIdAsync(string userId);
 
+        Task<List<Garden>> FilterGardensByUserIdAndGardenIdAsync(string userId,string name);
+
     }
 }

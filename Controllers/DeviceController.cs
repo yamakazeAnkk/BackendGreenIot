@@ -34,29 +34,62 @@ namespace GreenIotApi.Controllers
             }
         }
         [HttpPost]
-        public async Task<IActionResult> AddDevice(string gardenId, [FromBody] DeviceDto deviceDto)
+        public async Task<IActionResult> AddDevice([FromBody] DeviceDto deviceDto, string gardenId = "6jk2PWTaobJgQCGPlVso")
         {
-            if(string.IsNullOrEmpty(deviceDto.Name))
+            if (string.IsNullOrEmpty(deviceDto.Name))
             {
                 return BadRequest("Device name is required.");
             }
+
+            // Tách các thiết bị từ chuỗi đầu vào
+            var deviceNames = deviceDto.Name.Split(',').Select(name => name.Trim()).ToList();
+
+            // Kiểm tra các thiết bị đã có trong cơ sở dữ liệu
             var existingDevices = await _deviceService.GetDevicesAsync(gardenId);
-            if (existingDevices.Any(d => d.Name.Equals(deviceDto.Name, StringComparison.OrdinalIgnoreCase)))
+
+            var successfullyAddedDevices = new List<string>();
+            var failedDevices = new List<string>();
+
+            foreach (var deviceName in deviceNames)
             {
-                return Conflict(new { Message = "A device with the same name already exists in this garden." });
+                // Kiểm tra xem thiết bị đã tồn tại chưa
+                if (existingDevices.Any(d => d.Name.Equals(deviceName, StringComparison.OrdinalIgnoreCase)))
+                {
+                    failedDevices.Add(deviceName); // Nếu thiết bị đã có, lưu vào danh sách thất bại
+                    continue;
+                }
+
+                // Kiểm tra xem gardenId có tồn tại không
+                if (!await _deviceService.CheckGardenExistsAsync(gardenId))
+                {
+                    return NotFound("GardenId does not exist.");
+                }
+
+                // Thêm thiết bị vào Firestore
+                var device = new Device { Name = deviceName }; // Chỉ lấy tên thiết bị từ input
+                try
+                {
+                    var deviceId = await _deviceService.AddDeviceAsync(gardenId, device);
+                    successfullyAddedDevices.Add(deviceName); // Thêm vào danh sách thành công
+                }
+                catch (Exception ex)
+                {
+                    failedDevices.Add(deviceName); // Nếu có lỗi (thiết bị trùng tên), lưu vào danh sách thất bại
+                }
             }
-            if(!await _deviceService.CheckGardenExistsAsync(gardenId))
+
+            // Trả về thông tin thiết bị đã được thêm và các thiết bị bị thất bại
+            return Ok(new
             {
-                return NotFound("GardenId does not exist.");
-            }
-            var device = _mapper.Map<Device>(deviceDto);
-            var deviceId = await _deviceService.AddDeviceAsync(gardenId, device);
-            return Ok(new { DeviceId = deviceId, Message = "Device added successfully." });
+                Success = successfullyAddedDevices,
+                Failed = failedDevices
+            });
         }
+
 
         // Get All Devices from a Garden
         [HttpGet]
-        public async Task<IActionResult> GetDevices(string gardenId)
+        public async Task<IActionResult> GetDevices(string gardenId = "6jk2PWTaobJgQCGPlVso")
         {
             var devices = await _deviceService.GetDevicesAsync(gardenId);
             if (!devices.Any())
@@ -69,7 +102,7 @@ namespace GreenIotApi.Controllers
             try
             {
                 await _firebaseStorageService.UpdateDataToRealtimeDatabaseAsync(nodeId, data);
-                return Ok();
+                return Ok(new { Message = "Data updated successfully." });
             }
             catch (Exception ex)
             {

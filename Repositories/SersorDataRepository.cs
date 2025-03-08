@@ -109,26 +109,13 @@ namespace GreenIotApi.Repositories
 
 
 
-        private DateTime GetStartOfWeek(int year, int month, int weekNumber)
+        private DateTime GetStartOfWeek(DateTime date)
         {
-            // Ngày đầu tháng
-            var firstDayOfMonth = new DateTime(year, month, 1, 0, 0, 0, DateTimeKind.Utc);  // Sử dụng UTC cho ngày đầu tháng
-
-            // Điều chỉnh sao cho ngày đầu tuần là Thứ Hai (0 = Monday, 1 = Tuesday, ..., 6 = Sunday)
-            int daysToSubtract = (int)firstDayOfMonth.DayOfWeek - 1; // Đảm bảo rằng tuần bắt đầu từ Thứ Hai
-            if (daysToSubtract < 0)
-            {
-                daysToSubtract = 6; // Nếu ngày đầu tháng là Chủ nhật, thì lấy ngày thứ Hai tuần trước
-            }
-
-            // Lấy ngày đầu tuần (bắt đầu từ Thứ Hai) trong UTC
-            var startOfWeek = firstDayOfMonth.AddDays(-daysToSubtract);
-
-            // Tính toán ngày đầu tuần của tuần mong muốn (tuầnNumber là tuần bắt đầu từ 1)
-            var startOfWeekForWeekNumber = startOfWeek.AddDays((weekNumber - 1) * 7);
-
-            // Trả về ngày bắt đầu của tuần trong UTC
-            return startOfWeekForWeekNumber;
+            // Tính toán ngày thứ 2 của tuần mà ngày đó thuộc về
+            var dayOfWeek = (int)date.DayOfWeek;
+            var daysToSubtract = (dayOfWeek == 0) ? 6 : dayOfWeek - 1; // Nếu là Chủ Nhật (0), trừ 6 ngày, nếu là ngày khác, trừ để về thứ 2
+            var startOfWeek = date.AddDays(-daysToSubtract); // Ngày bắt đầu của tuần (thứ 2)
+            return startOfWeek;
         }
 
 
@@ -160,40 +147,88 @@ namespace GreenIotApi.Repositories
         }
 
         
-        public async Task<List<SensorData>> GetSensorDataByWeekAsync(string nodeId, int year, int month, int week)
+        public async Task<List<SensorData>> GetSensorDataByWeekAsync(string nodeId, int year, int month, int day)
+        {
+            try
+                {
+                    // Tạo ngày từ năm, tháng và ngày đã nhập
+                    DateTime inputDate = new DateTime(year, month, day);
+
+                    // Lấy ngày bắt đầu (thứ 2) và ngày kết thúc (chủ nhật) của tuần
+                    DateTime startOfWeek = GetStartOfWeek(inputDate).ToUniversalTime();
+                    DateTime endOfWeek = startOfWeek.AddDays(7); // Ngày kết thúc là 7 ngày sau ngày bắt đầu
+
+                    var collectionRef = _firestoreDb.Collection("gardens").Document(nodeId).Collection("data");
+
+                    // Truy vấn Firestore để lấy dữ liệu trong phạm vi từ thứ 2 đến chủ nhật
+                    var query = collectionRef
+                        .WhereGreaterThanOrEqualTo("Timestamp", startOfWeek)
+                        .WhereLessThan("Timestamp", endOfWeek)
+                        .OrderBy("Timestamp");
+
+                    var snapshot = await query.GetSnapshotAsync();
+
+                    // Trả về dữ liệu đã lấy từ Firestore
+                    return snapshot.Documents.Select(doc => doc.ConvertTo<SensorData>()).ToList();
+                }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error while fetching data for date {day}: {ex.Message}");
+            }
+
+        }
+
+        public Task CheckAndAlertForSensorActivityAsync(Garden garden, DateTime date)
+        {
+            throw new NotImplementedException();
+        }
+
+
+        // private DateTime GetStartOfWeek(int year, int month, int weekNumber)
+        // {
+        //     var firstDayOfMonth = new DateTime(year, month, 1);
+        //     int daysToAdd = (weekNumber - 1) * 7 - (int)firstDayOfMonth.DayOfWeek;
+        //     return firstDayOfMonth.AddDays(daysToAdd);
+        // }
+        public async Task<List<SensorData>> GetSensorDataByDateAsync(string gardenId, DateTime date)
         {
             try
             {
-                var collectionRef = _firestoreDb.Collection("gardens").Document(nodeId).Collection("data");
+                // Chuyển đổi DateTime thành UTC
+                var startOfDay = new DateTime(date.Year, date.Month, date.Day, 0, 0, 0, DateTimeKind.Utc); // 00:00:00 UTC
+                var endOfDay = startOfDay.AddDays(1); // 23:59:59 UTC
 
-                // Xác định ngày bắt đầu và kết thúc của tuần (lấy theo UTC)
-                var startOfWeek = GetStartOfWeek(year, month, week);
-                var endOfWeek = startOfWeek.AddDays(7); // Ngày kết thúc là 7 ngày sau đó
+                // Truy vấn Firestore để lấy dữ liệu cảm biến trong khoảng thời gian ngày cần tìm
+                var collectionRef = _firestoreDb
+                    .Collection("gardens")
+                    .Document(gardenId)  // Truy vấn theo gardenId
+                    .Collection("data");  // Dữ liệu cảm biến nằm trong sub-collection "data"
 
-                // Lọc dữ liệu trong phạm vi tuần đã xác định
+                // Truy vấn các document có Timestamp nằm trong khoảng thời gian của ngày
                 var query = collectionRef
-                    .WhereGreaterThanOrEqualTo("Timestamp", startOfWeek)
-                    .WhereLessThan("Timestamp", endOfWeek)
+                    .WhereGreaterThanOrEqualTo("Timestamp", startOfDay)
+                    .WhereLessThan("Timestamp", endOfDay)
                     .OrderBy("Timestamp");
 
                 var snapshot = await query.GetSnapshotAsync();
 
-                // Trả về dữ liệu đã lấy từ Firestore
-                return snapshot.Documents.Select(doc => doc.ConvertTo<SensorData>()).ToList();
+                // Chuyển các document lấy được thành đối tượng SensorData
+                var sensorDataList = snapshot.Documents
+                    .Select(doc => doc.ConvertTo<SensorData>())
+                    .ToList();
+
+                return sensorDataList;
             }
             catch (Exception ex)
             {
-                throw new Exception($"Error while fetching data for week {week}: {ex.Message}");
+                // Xử lý lỗi nếu có
+                throw new Exception($"Error fetching sensor data for garden {gardenId} on {date.ToShortDateString()}: {ex.Message}");
             }
         }
 
-
-    // private DateTime GetStartOfWeek(int year, int month, int weekNumber)
-    // {
-    //     var firstDayOfMonth = new DateTime(year, month, 1);
-    //     int daysToAdd = (weekNumber - 1) * 7 - (int)firstDayOfMonth.DayOfWeek;
-    //     return firstDayOfMonth.AddDays(daysToAdd);
-    // }
-
+        public Task CheckSensorsForUserAsync(DateTime date)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

@@ -51,5 +51,16 @@ namespace GreenIotApi.Repositories
             // Chuyển đổi tài liệu đầu tiên thành SensorData
             return snapshot.Documents.First().ConvertTo<SensorData>();
         }
+
+        public async Task<List<Garden>> FilterGardensByUserIdAndGardenIdAsync(string userId, string name)
+        {
+            var dataCollection = _firestoreDb
+                .Collection("gardens")
+                .WhereEqualTo("user_id", userId)
+                .WhereEqualTo("name", name);
+
+            var snapshot = await dataCollection.GetSnapshotAsync();
+            return snapshot.Documents.Select(doc => doc.ConvertTo<Garden>()).ToList();
+        }
     }
 }

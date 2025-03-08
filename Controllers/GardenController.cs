@@ -83,7 +83,12 @@ namespace GreenIotApi.Controllers
             return Ok(gardens);
         }
 
-       
+        [HttpGet("user/{userId}/garden")]
+        public async Task<IActionResult> FilterGardensByUserIdAndGardenId(string userId = "mk97H9R96VSwZL3MKZK7vy0wAeA3", string name = "Cần Thơ")
+        {
+            var gardens = await _gardenService.FilterGardensByUserIdAndGardenIdAsync(userId, name);
+            return Ok(gardens);
+        }
 
     }
 }
